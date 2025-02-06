@@ -1,5 +1,0 @@
-[backup]
-192.168.57.66 ansible_ssh_user=vagrant ansible_ssh_pass=vagrant
-
-[client]
-192.168.57.67 ansible_ssh_user=vagrant ansible_ssh_pass=vagrant
