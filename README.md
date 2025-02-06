@@ -29,38 +29,33 @@
 # vi: set ft=ruby :
 Vagrant.configure(2) do |config|
   config.vm.box = "bento/ubuntu-22.04"
-  #config.vm.provision "ansible" do |ansible|
-  #  ansible.playbook = "site.yaml"
-  #  ansible.become = "true"
-  #end
+  
   config.vm.provider "virtualbox" do |v|
     v.memory = 1024
     v.cpus = 1
   end
+
   config.vm.define "backup" do |backup|
     backup.vm.network "private_network", ip: "192.168.57.66"
     backup.vm.hostname = "backup"
-   # backup.vm.synced_folder "./data", "/home/vagrant/data"
+    
     backup.vm.provider "virtualbox" do |vb|
       unless File.exist?('./storage/backup.vdi')
-            vb.customize ['createhd', '--filename', './storage/backup.vdi', '--variant', 'Fixed', '--size', 2176]
-            needsController = true
+        vb.customize ['createhd', '--filename', './storage/backup.vdi', '--variant', 'Fixed', '--size', 2176]
+        needsController = true
       end
-      #vb.customize ["storagectl", :id, "--name", "SATA Controller", "--add", "sata"]
       vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './storage/backup.vdi']
     end
   end
+
   config.vm.define "client" do |client|
     client.vm.network "private_network", ip: "192.168.57.67"
     client.vm.hostname = "client"
-   # client.vm.synced_folder "./data", "/home/vagrant/data"
   end
 end
-
-
 ```   
 
-## 2. Написал Playbook backup.yml   
+## 2. Написал Playbook backup.yml, создал роли   
 
 ```yml
 ---
@@ -108,12 +103,7 @@ end
     - name: show logs jounalctl
       debug:
         var: result.stdout_lines
-
-
 ```   
-
- 
-
 
 ## 3. Далее выполнил команду vagrant up   
 
@@ -123,8 +113,7 @@ Bringing machine 'backup' up with 'virtualbox' provider...
 Bringing machine 'client' up with 'virtualbox' provider...
 
 ```   
-
-перед запуском playbook'а необходимо установить sshpass   
+перед запуском playbook'а необходимо установить sshpass это утилита необходима для передачи пароля, для аутентификации SSH без ручного ввода   
 root@debian:/home/guared/backup/ansible# apt-get update   
 root@debian:/home/guared/backup/ansible# apt-get install -y sshpass   
 
@@ -137,7 +126,6 @@ PLAY [set timezone Moscow] *****************************************************
 TASK [Gathering Facts] **********************************************************************************************************************************************************************
 ok: [192.168.57.67]
 ok: [192.168.57.66]
-
 ...
 
 PLAY RECAP **********************************************************************************************************************************************************************************
@@ -145,9 +133,7 @@ PLAY RECAP *********************************************************************
 192.168.57.67              : ok=16   changed=9    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 
 ```   
-Playbook отработал без ошибок. Также последней задачей выводится логи jounalctl   
-
-  
+Playbook отработал без ошибок. Также последней задачей выводится логи journalctl   
 
 ## 4. Проверяю создание бэкапа   
 
@@ -177,9 +163,7 @@ drwxr-xr-x root   root          0 Fri, 2024-02-16 21:50:11 etc/PackageKit
 -rw-r--r-- root   root        706 Thu, 2022-02-17 16:13:28 etc/PackageKit/PackageKit.conf
 -rw-r--r-- root   root       1718 Mon, 2022-03-14 22:11:19 etc/PackageKit/Vendor.conf
 ...
-
 ```   
-
 ### 4.2 Пробую достать файл из бекапа   
 
 ```shell
@@ -196,8 +180,6 @@ Remote: Warning: Permanently added '192.168.57.66' (ED25519) to the list of know
 root@client:/etc# ls -l etc/xattr.conf
 -rw-r--r-- 1 root root 681 Mar 23  2022 etc/xattr.conf
 ```
-
-
 Проверил работу таймера   
 
 ```shell
@@ -218,8 +200,6 @@ n/a                         n/a           n/a                         n/a       
 
 12 timers listed.
 ```   
-
-
 __________________   
 
 end
