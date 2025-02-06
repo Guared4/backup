@@ -101,7 +101,7 @@ end
   hosts: client
   become: true
   post_tasks:
-    - name: show logs jounalctl
+    - name: show logs journalctl
       debug:
         var: result.stdout_lines
 ```   
