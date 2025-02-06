@@ -1,0 +1,46 @@
+---
+- name: set timezone Moscow
+  hosts: all
+  become: true
+  pre_tasks:
+    - name: set timezone
+      timezone:
+        name: Europe/Moscow
+  
+
+- name: play config backup
+  hosts: backup
+  become: true
+  roles:
+    - install_borgbackup
+    - config_backup
+
+  
+- name: play config client
+  hosts: client
+  become: true
+  roles:
+    - install_borgbackup
+    - config_client
+
+
+- name: copy to backup ssh key
+  hosts: backup
+  become: true
+  roles:
+    - add_ssh
+  
+- name: run backup
+  hosts: client
+  become: true
+  roles:
+    - run_backup
+    
+- name: check borgbackup
+  hosts: client
+  become: true
+  post_tasks:
+    - name: show logs jounalctl
+      debug:
+        var: result.stdout_lines
+
