@@ -1,0 +1,6 @@
+---
+- name: Install borgbackup
+  ansible.builtin.apt:
+    name: borgbackup
+    state: latest
+  become: yes
