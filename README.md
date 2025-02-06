@@ -25,41 +25,38 @@
 
 ```vagrantfile
 
-Vagrant.configure("2") do |config|
-
-  
-  config.vm.provider :virtualbox do |v|
-    v.memory = 2048
-    v.cpus = 2
+# -- mode: ruby --
+# vi: set ft=ruby :
+Vagrant.configure(2) do |config|
+  config.vm.box = "bento/ubuntu-22.04"
+  #config.vm.provision "ansible" do |ansible|
+  #  ansible.playbook = "site.yaml"
+  #  ansible.become = "true"
+  #end
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
+    v.cpus = 1
   end
-
-  
-  config.vm.define "logserver" do |log|
-    log.vm.box = "bento/ubuntu-22.04"
-    log.vm.hostname = "logserver"
-    log.vm.network :private_network, ip: "192.168.57.10"
-    log.vm.network "forwarded_port", guest: 60, host: 1160
+  config.vm.define "backup" do |backup|
+    backup.vm.network "private_network", ip: "192.168.57.66"
+    backup.vm.hostname = "backup"
+   # backup.vm.synced_folder "./data", "/home/vagrant/data"
+    backup.vm.provider "virtualbox" do |vb|
+      unless File.exist?('./storage/backup.vdi')
+            vb.customize ['createhd', '--filename', './storage/backup.vdi', '--variant', 'Fixed', '--size', 2176]
+            needsController = true
+      end
+      #vb.customize ["storagectl", :id, "--name", "SATA Controller", "--add", "sata"]
+      vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './storage/backup.vdi']
+    end
   end
-
-  
-  config.vm.define "webserver" do |web|
-    web.vm.box = "bento/ubuntu-22.04"
-    web.vm.hostname = "webserver"
-    web.vm.network :private_network, ip: "192.168.57.20"
-    web.vm.network "forwarded_port", guest: 80, host: 8080
-    web.vm.network "forwarded_port", guest: 514, host: 1514
-  end
-
-  
-  config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "playbooks/log.yml"
-    ansible.inventory_path = "inventory"
-    ansible.extra_vars = {
-      ansible_user: "vagrant",
-      ansible_ssh_private_key_file: "~/.vagrant.d/insecure_private_key"
-    }
+  config.vm.define "client" do |client|
+    client.vm.network "private_network", ip: "192.168.57.67"
+    client.vm.hostname = "client"
+   # client.vm.synced_folder "./data", "/home/vagrant/data"
   end
 end
+
 
 ```   
 
@@ -67,26 +64,55 @@ end
 
 ```yml
 ---
-- name: Update system
+- name: set timezone Moscow
   hosts: all
   become: true
-  roles:
-    - common
+  pre_tasks:
+    - name: set timezone
+      timezone:
+        name: Europe/Moscow
+  
 
-- hosts: backup_server
-  become: yes
+- name: play config backup
+  hosts: backup
+  become: true
   roles:
-    - backup_server
+    - install_borgbackup
+    - config_backup
 
-- hosts: client
-  become: yes
+  
+- name: play config client
+  hosts: client
+  become: true
   roles:
-    - client
+    - install_borgbackup
+    - config_client
+
+
+- name: copy to backup ssh key
+  hosts: backup
+  become: true
+  roles:
+    - add_ssh
+  
+- name: run backup
+  hosts: client
+  become: true
+  roles:
+    - run_backup
+    
+- name: check borgbackup
+  hosts: client
+  become: true
+  post_tasks:
+    - name: show logs jounalctl
+      debug:
+        var: result.stdout_lines
+
+
 ```   
 
-#### 2.1 Создал структуру проекта с ролями   
-
-![alt text](img/roles.png)   
+ 
 
 
 ## 3. Далее выполнил команду vagrant up   
