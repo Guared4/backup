@@ -1,0 +1,30 @@
+---
+- name: make dir for root ssh
+  file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: create ssh keys
+  openssh_keypair:
+    path: "/root/.ssh/id_rsa"
+    type: rsa
+    owner: root
+    group: root
+    state: present
+    force: no
+    
+- name: copy pub ssh key from the client node to master
+  fetch: 
+    src: "/root/.ssh/id_rsa.pub"
+    dest: "./roles/add_ssh/files/"
+    flat: yes
+
+- name: template ssh user config
+  template:
+    src: templates/config
+    dest: /root/.ssh/
+    owner: root
+    mode: "0400"
