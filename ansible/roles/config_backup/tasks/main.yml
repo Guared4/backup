@@ -1,0 +1,40 @@
+---
+- name: create user borg
+  user:
+    name: borg
+    createhome: yes
+    state: present    
+    
+- name: create ssh dir
+  file:
+    path: /home/borg/.ssh
+    state: directory
+    mode: "0700"
+
+- name: create authorized_keys
+  file: 
+    path: /home/borg/.ssh/authorized_keys
+    state: touch
+    mode: "0600"
+
+- name: make fs in disk
+  filesystem:
+    fstype: xfs
+    dev: /dev/sdb
+    
+- name: mount disk to backup directory
+  mount:
+    path: /var/backup
+    src: /dev/sdb
+    state: mounted
+    fstype: xfs
+
+- name: create dir for backup
+  file:
+    path: /var/backup/
+    state: directory
+    owner: borg
+    group: borg
+    access_time: now
+    modification_time: now    
+
